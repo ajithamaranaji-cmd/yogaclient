@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Base user profile for students and professionals",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "professional", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "profileImage": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ProfessionalProfile": {
+      "title": "Professional Profile",
+      "description": "Detailed profile for wellness professionals",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string" },
+        "bio": { "type": "string" },
+        "certifications": { "type": "array" },
+        "experience": { "type": "number" },
+        "languages": { "type": "array" },
+        "pricing": { "type": "object" },
+        "availability": { "type": "object" },
+        "isPremium": { "type": "boolean" },
+        "subscriptionPlan": { "type": "string", "enum": ["free", "starter", "growth", "pro"] },
+        "leadsRemaining": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "videoIntroUrl": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "location": { "type": "object" }
+      },
+      "required": ["userId", "category"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Student inquiry for a professional",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "professionalId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "contacted", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "professionalId", "studentName", "studentEmail"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Subscription records",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "planId": { "type": "string" },
+        "status": { "type": "string" },
+        "currentPeriodEnd": { "type": "string", "format": "date-time" },
+        "stripeSubscriptionId": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Core user records"
+    },
+    "/professionals/{userId}": {
+      "schema": "ProfessionalProfile",
+      "description": "Professional specific details"
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Leads generated for professionals"
+    },
+    "/subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "Subscription details"
+    }
+  }
+}
