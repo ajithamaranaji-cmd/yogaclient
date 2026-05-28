@@ -87,15 +87,53 @@ export default function Blog() {
                     </div>
                   </div>
                   <div className="prose prose-stone max-w-none">
-                    <p className="text-lg text-wellness-muted leading-relaxed font-serif italic mb-8">
+                    <p className="text-xl text-wellness-muted leading-relaxed font-serif italic mb-12 border-l-4 border-wellness-sage/30 pl-6 py-1">
                       {activePost.desc}
                     </p>
-                    <p className="text-wellness-stone leading-relaxed mb-6">
-                      Yoga is more than just physical exercise; it's a profound system for holistic well-being. By focusing on the connection between breath, body, and mind, practitioners can unlock a sense of tranquility that extends far beyond the mat.
-                    </p>
-                    <p className="text-wellness-stone leading-relaxed">
-                      In today's fast-paced world, finding moments of stillness is essential. Whether it's through a five-minute morning flow or an hour-long deep meditation, these practices serve as anchors, helping us navigate life's challenges with greater ease and resilience.
-                    </p>
+                    
+                    {activePost.content ? (
+                      <div className="space-y-6 text-stone-800">
+                        {activePost.content.map((paragraph, index) => {
+                          if (paragraph.startsWith('### ')) {
+                            return (
+                              <h3 key={index} className="text-xl font-bold font-serif text-wellness-stone mt-8 mb-4">
+                                {paragraph.replace('### ', '')}
+                              </h3>
+                            );
+                          }
+                          if (paragraph.startsWith('## ')) {
+                            return (
+                              <h2 key={index} className="text-2xl font-serif text-wellness-stone mt-12 mb-6 border-b pb-3 border-stone-100 font-medium">
+                                {paragraph.replace('## ', '')}
+                              </h2>
+                            );
+                          }
+                          if (paragraph.startsWith('- ')) {
+                            return (
+                              <ul key={index} className="list-disc pl-6 space-y-1 my-3">
+                                <li className="text-wellness-stone leading-relaxed text-base">
+                                  {paragraph.replace('- ', '')}
+                                </li>
+                              </ul>
+                            );
+                          }
+                          return (
+                            <p key={index} className="text-base text-stone-700/90 leading-relaxed font-sans mb-6">
+                              {paragraph}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-wellness-stone leading-relaxed mb-6">
+                          Yoga is more than just physical exercise; it's a profound system for holistic well-being. By focusing on the connection between breath, body, and mind, practitioners can unlock a sense of tranquility that extends far beyond the mat.
+                        </p>
+                        <p className="text-wellness-stone leading-relaxed font-sans">
+                          In today's fast-paced world, finding moments of stillness is essential. Whether it's through a five-minute morning flow or an hour-long deep meditation, these practices serve as anchors, helping us navigate life's challenges with greater ease and resilience.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="rounded-[40px] overflow-hidden shadow-2xl h-[400px] lg:h-[600px]">
