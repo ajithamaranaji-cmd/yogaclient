@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Exclude private app dashboards from search engines
+Disallow: /dashboard
+Disallow: /leads
+Disallow: /admin
+Disallow: /saved-profiles
+Disallow: /checkout/success
+
+# Sitemap Location
+Sitemap: https://globalwellnessmarketplace.com/sitemap.xml
