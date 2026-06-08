@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ChevronRight, Clock, User, Heart, MessageSquare, ArrowRight, Mail, Sparkles, Leaf, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { 
   BLOG_POSTS, 
@@ -16,10 +16,146 @@ const POPULAR_POSTS = BLOG_POSTS.slice(0, 5);
 
 export default function Blog() {
   const [filterCategory, setFilterCategory] = useState('All');
-  const [activePost, setActivePost] = useState<BlogPost | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 30;
+
+  const { slug } = useParams();
+  const navigate = useNavigate();
+
+  const activePost = useMemo(() => {
+    if (!slug) return null;
+    return BLOG_POSTS.find(p => p.slug === slug) || null;
+  }, [slug]);
+
+  // If slug is provided but article doesn't exist, redirect back to blog index
+  useEffect(() => {
+    if (slug && !activePost) {
+      navigate('/blog', { replace: true });
+    }
+  }, [slug, activePost, navigate]);
+
+  // SEO Optimization & Tag Injection
+  useEffect(() => {
+    if (activePost) {
+      const canonicalUrl = `https://yogaclientflow.com/blog/${activePost.slug}`;
+      const headTitle = activePost.metaTitle || `${activePost.title} | YogaClientFlow`;
+      const headDesc = activePost.metaDesc || activePost.desc;
+      
+      // Update Title tag
+      document.title = headTitle;
+
+      // Meta Tag setter helper function
+      const setMetaTag = (propertyOrName: string, content: string, isProperty = false) => {
+        const attribute = isProperty ? 'property' : 'name';
+        let element = document.querySelector(`meta[${attribute}="${propertyOrName}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute(attribute, propertyOrName);
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      setMetaTag('description', headDesc);
+      
+      // Open Graph Tags
+      setMetaTag('og:title', headTitle, true);
+      setMetaTag('og:description', headDesc, true);
+      setMetaTag('og:url', canonicalUrl, true);
+      setMetaTag('og:image', activePost.image, true);
+      setMetaTag('og:type', 'article', true);
+      setMetaTag('og:site_name', 'YogaClientFlow', true);
+      
+      // Twitter Card tags
+      setMetaTag('twitter:card', 'summary_large_image');
+      setMetaTag('twitter:title', headTitle);
+      setMetaTag('twitter:description', headDesc);
+      setMetaTag('twitter:image', activePost.image);
+
+      // Canonical URL tag
+      let canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute('href', canonicalUrl);
+
+      // Dynamic JSON-LD Structured Data (BlogPosting schema)
+      let schemaScript = document.getElementById('blog-posting-schema');
+      if (!schemaScript) {
+        schemaScript = document.createElement('script');
+        schemaScript.setAttribute('id', 'blog-posting-schema');
+        schemaScript.setAttribute('type', 'application/ld+json');
+        document.body.appendChild(schemaScript);
+      }
+      const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": activePost.title,
+        "description": activePost.desc,
+        "image": activePost.image,
+        "datePublished": activePost.date.includes(',') ? new Date(activePost.date).toISOString().split('T')[0] : "2026-06-08",
+        "dateModified": new Date().toISOString().split('T')[0],
+        "author": {
+          "@type": "Organization",
+          "name": activePost.author || "YogaClientFlow Team",
+          "url": "https://yogaclientflow.com"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "YogaClientFlow",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://yogaclientflow.com/logo.png"
+          }
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalUrl
+        }
+      };
+      schemaScript.textContent = JSON.stringify(schemaData);
+
+      return () => {
+        schemaScript?.remove();
+      };
+    } else {
+      const canonicalUrl = 'https://yogaclientflow.com/blog';
+      const headTitle = 'Wellness Insights & Yoga Studio Resources | YogaClientFlow';
+      const headDesc = 'Discover expert tips, business growth guides, and pricing blueprints to successfully scale your yoga studio and retain more clients.';
+      
+      document.title = headTitle;
+
+      const setMetaTag = (propertyOrName: string, content: string, isProperty = false) => {
+        const attribute = isProperty ? 'property' : 'name';
+        let element = document.querySelector(`meta[${attribute}="${propertyOrName}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute(attribute, propertyOrName);
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      setMetaTag('description', headDesc);
+      setMetaTag('og:title', headTitle, true);
+      setMetaTag('og:description', headDesc, true);
+      setMetaTag('og:url', canonicalUrl, true);
+      setMetaTag('og:type', 'website', true);
+
+      let canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute('href', canonicalUrl);
+
+      document.getElementById('blog-posting-schema')?.remove();
+    }
+  }, [activePost]);
 
   const featuredPosts = useMemo(() => BLOG_POSTS.filter(p => p.featured), []);
   
@@ -27,16 +163,16 @@ export default function Blog() {
     if (activePost) {
       return getRelatedPosts(activePost.id);
     }
-    let posts = getPostsByCategory(filterCategory).filter(p => !p.featured);
+    // Search fix: If search is active, query all blog articles (both featured & non-featured, ignoring tag filter)
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase().trim();
-      posts = posts.filter(p => 
+      return BLOG_POSTS.filter(p => 
         p.title.toLowerCase().includes(query) || 
         p.desc.toLowerCase().includes(query) || 
         p.tag.toLowerCase().includes(query)
       );
     }
-    return posts;
+    return getPostsByCategory(filterCategory).filter(p => !p.featured);
   }, [filterCategory, activePost, searchQuery]);
 
   const totalPages = Math.ceil(displayPosts.length / postsPerPage);
@@ -53,14 +189,16 @@ export default function Blog() {
   }, [displayPosts, totalPages, currentPage]);
 
   const toggleCategory = (cat: string) => {
-    setActivePost(null);
+    if (slug) {
+      navigate('/blog');
+    }
     setFilterCategory(prev => prev === cat ? 'All' : cat);
     setSearchQuery('');
     setCurrentPage(1);
   };
 
   const handlePostClick = (post: BlogPost) => {
-    setActivePost(post);
+    navigate(`/blog/${post.slug}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -96,8 +234,9 @@ export default function Blog() {
           >
             <div className="max-w-7xl mx-auto px-4 lg:px-8">
               <button 
-                onClick={() => setActivePost(null)}
+                onClick={() => navigate('/blog')}
                 className="flex items-center gap-2 text-[10px] font-bold text-wellness-muted uppercase tracking-widest mb-12 group hover:text-wellness-sage transition-colors"
+                id="back-to-blog"
               >
                 <ChevronRight className="w-4 h-4 rotate-180" /> Back to blog
               </button>

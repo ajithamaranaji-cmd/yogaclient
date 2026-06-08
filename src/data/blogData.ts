@@ -11,9 +11,14 @@ export interface BlogPost {
   readTime: string;
   featured?: boolean;
   content?: string[];
+  slug?: string;
+  metaTitle?: string;
+  metaDesc?: string;
+  primaryKeyword?: string;
+  secondaryKeywords?: string[];
 }
 
-export const BLOG_POSTS: BlogPost[] = [
+const RAW_BLOG_POSTS: BlogPost[] = [
   {
     id: 30,
     tag: "Business & Growth",
@@ -1848,10 +1853,28 @@ export const BLOG_POSTS: BlogPost[] = [
       author: "YogaClientFlow Team",
       date: "June 18, 2026",
       readTime: "11 min read",
-      content: generatePostContent(spec)
+      content: generatePostContent(spec),
+      slug: spec.slug,
+      metaTitle: spec.metaTitle,
+      metaDesc: spec.metaDesc
     }));
   })()
 ];
+
+export const BLOG_POSTS: BlogPost[] = RAW_BLOG_POSTS.map(post => {
+  const generatedSlug = (post as any).slug || post.title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+  
+  return {
+    ...post,
+    slug: generatedSlug,
+    metaTitle: (post as any).metaTitle || `${post.title} | YogaClientFlow`,
+    metaDesc: (post as any).metaDesc || post.desc,
+  };
+});
 
 export const BLOG_CATEGORIES = [
   { name: 'Business & Growth', icon: '📈' },

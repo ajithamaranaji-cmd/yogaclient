@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import Stripe from 'stripe';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import { BLOG_POSTS } from './src/data/blogData';
 
 dotenv.config();
 
@@ -52,6 +53,51 @@ async function startServer() {
   // API Routes
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Dynamic XML Sitemap for SEO Indexation
+  app.get('/sitemap.xml', (req, res) => {
+    const domain = 'https://yogaclientflow.com';
+    const lastmod = '2026-06-08';
+
+    const staticPages = [
+      { path: '/', changefreq: 'daily', priority: '1.0' },
+      { path: '/about', changefreq: 'weekly', priority: '0.8' },
+      { path: '/blog', changefreq: 'daily', priority: '0.9' },
+      { path: '/pricing', changefreq: 'monthly', priority: '0.7' },
+      { path: '/search', changefreq: 'daily', priority: '0.8' },
+      { path: '/signup/teacher', changefreq: 'monthly', priority: '0.6' },
+      { path: '/signup/student', changefreq: 'monthly', priority: '0.6' },
+      { path: '/login', changefreq: 'monthly', priority: '0.5' }
+    ];
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    // Static pages
+    staticPages.forEach(p => {
+      xml += '  <url>\n';
+      xml += `    <loc>${domain}${p.path}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <changefreq>${p.changefreq}</changefreq>\n`;
+      xml += `    <priority>${p.priority}</priority>\n`;
+      xml += '  </url>\n';
+    });
+
+    // Dynamic Blog Posts
+    BLOG_POSTS.forEach(post => {
+      xml += '  <url>\n';
+      xml += `    <loc>${domain}/blog/${post.slug}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>0.8</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    xml += '</urlset>\n';
+
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
   });
 
   app.post('/api/create-checkout-session', async (req, res) => {

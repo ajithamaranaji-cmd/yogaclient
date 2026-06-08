@@ -9,4 +9,4 @@ Disallow: /saved-profiles
 Disallow: /checkout/success
 
 # Sitemap Location
-Sitemap: https://globalwellnessmarketplace.com/sitemap.xml
+Sitemap: https://yogaclientflow.com/sitemap.xml

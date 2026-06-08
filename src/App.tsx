@@ -69,6 +69,7 @@ export default function App() {
                 <Route path="/profile/:id" element={<Profile />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<Blog />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/signup/teacher" element={<TeacherSignup />} />
                 <Route path="/signup/student" element={<StudentSignup />} />
