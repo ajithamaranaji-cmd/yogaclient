@@ -69,7 +69,8 @@ async function startServer() {
       { path: '/signup/teacher', changefreq: 'monthly', priority: '0.6' },
       { path: '/signup/student', changefreq: 'monthly', priority: '0.6' },
       { path: '/login', changefreq: 'monthly', priority: '0.5' },
-      { path: '/bangor-yoga-instructor-website', changefreq: 'weekly', priority: '0.9' }
+      { path: '/bangor-yoga-instructor-website', changefreq: 'weekly', priority: '0.9' },
+      { path: '/halifax-yoga-instructor-website', changefreq: 'weekly', priority: '0.9' }
     ];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';

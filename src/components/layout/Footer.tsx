@@ -55,6 +55,9 @@ export default function Footer() {
               <li>
                 <Link to="/bangor-yoga-instructor-website" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Bangor Web Design</Link>
               </li>
+              <li>
+                <Link to="/halifax-yoga-instructor-website" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Halifax Web Design</Link>
+              </li>
             </ul>
           </div>
 
