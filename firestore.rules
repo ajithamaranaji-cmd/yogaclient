@@ -35,40 +35,17 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
-      allow create: if isVerified() && isValidUser(incoming());
-      allow update: if isOwner(userId) && (
-        // Allow updating subscription fields, credits, unlocked/saved profiles, isPremium, and profileSetupCompleted
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'subscriptionExpiresAt', 'credits', 'unlockedProfiles', 'savedProfiles', 
-          'role', 'email', 'uid', 'isPremium', 'profileSetupCompleted'
-        ]) &&
-        isValidUser(incoming()) &&
-        incoming().role == existing().role
-      );
-    }
-
-    // Professional Profile Validation
-    function isValidProfessional(data) {
-      return data.keys().hasAll(['userId', 'category']) &&
-             data.userId == request.auth.uid &&
-             data.category is string && data.category.size() <= 100;
+      allow create, update: if isOwner(userId) || isAdmin();
     }
 
     match /professionals/{userId} {
       allow get: if true; 
       allow list: if true;
-      allow create: if isVerified() && isValidProfessional(incoming());
-      allow update: if isOwner(userId) && isValidProfessional(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'bio', 'certifications', 'experience', 'languages', 'availability', 
-          'videoIntroUrl', 'coverImageUrl', 'location', 'name', 'image', 'city', 
-          'category', 'profileSetupCompleted', 'rating', 'leadsRemaining', 'isPremium'
-        ])
-      ) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
 
       // Protected documents
       match /private/premium {
-        allow get: if isVerified();
+        allow get: if isSignedIn();
         allow write: if isOwner(userId) || isAdmin();
       }
 
@@ -81,19 +58,11 @@ service cloud.firestore {
       }
     }
 
-    // Lead Validation
-    function isValidLead(data) {
-      return data.keys().hasAll(['studentId', 'professionalId', 'studentName', 'studentEmail']) &&
-             data.studentId == request.auth.uid &&
-             data.studentName is string && data.studentName.size() <= 200 &&
-             data.studentEmail is string && data.studentEmail.size() <= 256;
-    }
-
     match /leads/{leadId} {
       allow get: if isOwner(existing().studentId) || isOwner(existing().professionalId) || isAdmin();
       allow list: if isSignedIn() && (resource.data.studentId == request.auth.uid || resource.data.professionalId == request.auth.uid) || isAdmin();
-      allow create: if isVerified() && isValidLead(incoming());
-      allow update: if (isOwner(existing().professionalId) && incoming().diff(existing()).affectedKeys().hasOnly(['status'])) || isAdmin();
+      allow create: if isSignedIn() && incoming().studentId == request.auth.uid;
+      allow update: if (isSignedIn() && (resource.data.professionalId == request.auth.uid || resource.data.studentId == request.auth.uid)) || isAdmin();
       allow delete: if isAdmin();
     }
 

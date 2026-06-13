@@ -68,7 +68,8 @@ async function startServer() {
       { path: '/search', changefreq: 'daily', priority: '0.8' },
       { path: '/signup/teacher', changefreq: 'monthly', priority: '0.6' },
       { path: '/signup/student', changefreq: 'monthly', priority: '0.6' },
-      { path: '/login', changefreq: 'monthly', priority: '0.5' }
+      { path: '/login', changefreq: 'monthly', priority: '0.5' },
+      { path: '/bangor-yoga-instructor-website', changefreq: 'weekly', priority: '0.9' }
     ];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';

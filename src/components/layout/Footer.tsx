@@ -28,22 +28,33 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-[0.3em] mb-8">Platform</h4>
             <ul className="space-y-4">
-              {['Find Teachers', 'For Teachers', 'Membership', 'How it works', 'Success Stories'].map((item) => (
-                <li key={item}>
-                  <Link to="#" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">{item}</Link>
-                </li>
-              ))}
+              <li>
+                <Link to="/search" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Find Teachers</Link>
+              </li>
+              <li>
+                <Link to="/signup/teacher" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">For Teachers</Link>
+              </li>
+              <li>
+                <Link to="/pricing" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Membership</Link>
+              </li>
+              <li>
+                <Link to="/" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">How it works</Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-[0.3em] mb-8">Resources</h4>
             <ul className="space-y-4">
-              {['About Us', 'Our Mission', 'Wellness Blog', 'Help Center', 'Safety & Trust'].map((item) => (
-                <li key={item}>
-                  <Link to="#" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">{item}</Link>
-                </li>
-              ))}
+              <li>
+                <Link to="/about" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">About Us</Link>
+              </li>
+              <li>
+                <Link to="/blog" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Wellness Blog</Link>
+              </li>
+              <li>
+                <Link to="/bangor-yoga-instructor-website" className="text-stone-400 hover:text-wellness-sage transition-colors text-sm">Bangor Web Design</Link>
+              </li>
             </ul>
           </div>
 

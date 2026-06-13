@@ -60,6 +60,7 @@ const plans = [
 
 export default function Pricing() {
   const { user } = useAuth();
+  const { purchasePremium } = useSubscription();
   const navigate = useNavigate();
 
   return (
@@ -165,7 +166,10 @@ export default function Pricing() {
                         ? `Pay with Razorpay (₹${plan.name === 'Starter' ? 2494 : plan.name === 'Growth' ? 4994 : 8494})`
                         : `Pay with Razorpay (₹${plan.name === 'Starter' ? 2499 : plan.name === 'Growth' ? 4999 : 8499})`
                     }
-                    onSuccess={() => navigate('/search')}
+                    onSuccess={async () => {
+                      await purchasePremium();
+                      navigate('/search');
+                    }}
                     className={plan.highlight ? "bg-wellness-sage text-white" : "bg-wellness-stone text-white"}
                   />
                 </div>

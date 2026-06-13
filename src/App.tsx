@@ -18,6 +18,7 @@ import Dashboard from './pages/Dashboard';
 import LeadDashboard from './pages/LeadDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SavedProfiles from './pages/SavedProfiles';
+import BangorYogaInstructorWebsite from './pages/BangorYogaInstructorWebsite';
 
 import ScrollToTop from './components/layout/ScrollToTop';
 
@@ -78,6 +79,8 @@ export default function App() {
                 <Route path="/leads" element={<LeadDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/saved-profiles" element={<SavedProfiles />} />
+                <Route path="/bangor-yoga-instructor-website" element={<BangorYogaInstructorWebsite />} />
+                <Route path="/bangor-yoga-instructor-website/:topicSlug" element={<BangorYogaInstructorWebsite />} />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
               </Routes>
             </PageTransition>
