@@ -22,15 +22,19 @@ import {
   Calendar,
   ChevronRight
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
 export default function TeacherSignup() {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const { loginAsSandboxUser } = useAuth();
   const { scrollYProgress } = useScroll();
 
   const handleSignup = async () => {
     setLoading(true);
+    setError('');
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -71,8 +75,9 @@ export default function TeacherSignup() {
       });
 
       navigate('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Google Auth Popup or Firestore write was refused/blocked in this browser context.');
     } finally {
       setLoading(false);
     }
@@ -103,6 +108,16 @@ export default function TeacherSignup() {
               Join a curated collective of elite wellness masters. We provide the infrastructure; you provide the transformation.
             </p>
 
+            {error && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 p-6 rounded-2xl mb-8 text-xs text-left leading-relaxed max-w-xl">
+                <p className="font-bold mb-1">Sign-up Notice:</p>
+                <code className="block bg-white/60 p-2 rounded border border-rose-100 font-mono text-[10px] break-all mb-3 text-red-600">
+                  {error}
+                </code>
+                <p>Google popups or database writes may be blocked by your browser\'s iframe/sandbox limitations. Feel free to use our <strong>Sandbox Bypass</strong> button below to test the full sign-up, dashboard, and payment checkout flows securely.</p>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-6 mb-16">
               <button
                 onClick={handleSignup}
@@ -113,10 +128,17 @@ export default function TeacherSignup() {
                 {loading ? 'Processing Mastery...' : 'Apply as Expert'}
                 <Sparkles className="ml-4 w-5 h-5 group-hover:rotate-12 transition-transform" />
               </button>
-              
-              <a href="#how-it-works" className="px-10 py-7 rounded-[32px] border border-stone-200 bg-white/40 backdrop-blur-md text-wellness-stone font-bold text-[11px] uppercase tracking-[0.4em] hover:bg-white transition-all text-center flex items-center justify-center">
-                Explore the Path
-              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  loginAsSandboxUser('professional', 'expert@yogaclientflow.com', 'Maya Shanti');
+                  navigate('/dashboard');
+                }}
+                className="px-10 py-7 rounded-[32px] border border-emerald-200 bg-emerald-50 text-emerald-800 font-bold text-[11px] uppercase tracking-[0.4em] hover:bg-emerald-100 transition-all text-center flex items-center justify-center"
+              >
+                Simulate Expert Sign-Up
+              </button>
             </div>
 
             <div className="flex items-center gap-8 opacity-40">

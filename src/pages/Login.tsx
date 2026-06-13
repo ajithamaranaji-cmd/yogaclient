@@ -5,10 +5,12 @@ import { auth, db } from '../lib/firebase';
 import { getDoc, doc } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { Leaf, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = React.useState('');
+  const { loginAsSandboxUser } = useAuth();
 
   const handleGoogleLogin = async () => {
     setError('');
@@ -30,7 +32,7 @@ export default function Login() {
       
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Verification failed. Google login popups are blocked in this frame setup.');
     }
   };
 
@@ -49,10 +51,20 @@ export default function Login() {
 
         <button
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center space-x-3 bg-white border border-wellness-ink/10 py-4 rounded-2xl font-bold hover:bg-wellness-bg transition-colors mb-8 shadow-sm"
+          className="w-full flex items-center justify-center space-x-3 bg-white border border-wellness-ink/10 py-4 rounded-2xl font-bold hover:bg-wellness-bg transition-colors mb-4 shadow-sm"
         >
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
           <span>Continue with Google</span>
+        </button>
+
+        <button
+          onClick={() => {
+            loginAsSandboxUser('professional', 'expert@yogaclientflow.com', 'Maya Shanti');
+            navigate('/dashboard');
+          }}
+          className="w-full flex items-center justify-center space-x-3 bg-emerald-50 border border-emerald-200 text-emerald-800 py-4 rounded-2xl font-bold hover:bg-emerald-100 transition-colors mb-8 shadow-sm"
+        >
+          <span>Simulate Expert Login</span>
         </button>
 
         <div className="text-sm text-wellness-ink/40 space-y-4">

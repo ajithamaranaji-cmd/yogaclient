@@ -151,20 +151,20 @@ export default function Pricing() {
                 <div className="pt-4 flex flex-col gap-4">
                   {user.email === 'ajithamaran1999@gmail.com' && (
                     <div className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center animate-pulse">
-                      ✨ Special Offer: ₹5 Deducted for ajithamaran1999@gmail.com!
+                      ✨ Special Offer: $5 Deducted for ajithamaran1999@gmail.com!
                     </div>
                   )}
                   <RazorpayButton
                     amount={
                       user.email === 'ajithamaran1999@gmail.com'
-                        ? (plan.name === 'Starter' ? 2494 : plan.name === 'Growth' ? 4994 : 8494)
-                        : (plan.name === 'Starter' ? 2499 : plan.name === 'Growth' ? 4999 : 8499)
+                        ? (plan.name === 'Starter' ? 24 : plan.name === 'Growth' ? 54 : 94)
+                        : (plan.name === 'Starter' ? 29 : plan.name === 'Growth' ? 59 : 99)
                     }
                     planId={plan.name}
                     label={
                       user.email === 'ajithamaran1999@gmail.com'
-                        ? `Pay with Razorpay (₹${plan.name === 'Starter' ? 2494 : plan.name === 'Growth' ? 4994 : 8494})`
-                        : `Pay with Razorpay (₹${plan.name === 'Starter' ? 2499 : plan.name === 'Growth' ? 4999 : 8499})`
+                        ? `Pay with Razorpay ($${plan.name === 'Starter' ? 24 : plan.name === 'Growth' ? 54 : 94})`
+                        : `Pay with Razorpay ($${plan.name === 'Starter' ? 29 : plan.name === 'Growth' ? 59 : 99})`
                     }
                     onSuccess={async () => {
                       await purchasePremium();

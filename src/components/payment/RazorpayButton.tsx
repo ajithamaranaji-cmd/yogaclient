@@ -3,7 +3,7 @@ import { CreditCard, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface RazorpayButtonProps {
-  amount: number; // in rupees
+  amount: number; // in USD
   onSuccess?: (response: any) => void;
   onError?: (error: any) => void;
   className?: string;
@@ -59,9 +59,22 @@ export default function RazorpayButton({
     setLoading(true);
     setGatewayError(null);
     try {
-      // 0. Proactively offer Simulation Mode if no credentials exist
-      if (!import.meta.env.VITE_RAZORPAY_KEY_ID) {
-        console.warn('VITE_RAZORPAY_KEY_ID is missing. Redirecting to Sandbox Simulation.');
+      // 0. Resolve Razorpay Key dynamically
+      let activeKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+      try {
+        const keyResponse = await fetch('/api/razorpay/key');
+        if (keyResponse.ok) {
+          const keyData = await keyResponse.json();
+          if (keyData.keyId) {
+            activeKeyId = keyData.keyId;
+          }
+        }
+      } catch (keyErr) {
+        console.warn('Could not retrieve dynamic Razorpay key:', keyErr);
+      }
+
+      if (!activeKeyId) {
+        console.warn('Razorpay Key ID is missing. Redirecting to Sandbox Simulation.');
         setShowSimulationModal(true);
         setLoading(false);
         return;
@@ -78,8 +91,8 @@ export default function RazorpayButton({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: amount * 100, // convert to paise
-          currency: 'INR',
+          amount: Math.round(amount * 100), // convert to cents
+          currency: 'USD',
           receipt: planId || 'default_receipt',
         }),
       });
@@ -92,8 +105,8 @@ export default function RazorpayButton({
 
       // 2. Open Razorpay Checkout
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Enter the Key ID generated from the Dashboard
-        amount: orderData.amount, // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+        key: activeKeyId, // Enter the Key ID generated from the Dashboard
+        amount: orderData.amount, // Amount is in currency subunits. Currency is USD (cents).
         currency: orderData.currency,
         name: 'Yogaclientflow',
         description: `Payment for ${planId || 'Wellness Service'}`,

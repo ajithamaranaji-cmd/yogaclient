@@ -5,13 +5,17 @@ import { auth } from '../lib/firebase';
 import { firestoreService } from '../services/firestore';
 import { motion } from 'motion/react';
 import { Compass, Sparkles, Smile, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentSignup() {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const { loginAsSandboxUser } = useAuth();
 
   const handleSignup = async () => {
     setLoading(true);
+    setError('');
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -29,8 +33,9 @@ export default function StudentSignup() {
       });
 
       navigate('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Google Auth Popup or Firestore write was refused/blocked in this browser context.');
     } finally {
       setLoading(false);
     }
@@ -64,14 +69,37 @@ export default function StudentSignup() {
            </div>
         </div>
 
-        <button
-          onClick={handleSignup}
-          disabled={loading}
-          className="bg-wellness-olive text-white px-12 py-6 rounded-full font-bold text-xl hover:bg-wellness-ink transition-all shadow-xl shadow-wellness-ink/20 flex items-center mx-auto group"
-        >
-          {loading ? 'Entering Sanctuary...' : 'Join us to enter'}
-          <Smile className="ml-3 w-6 h-6 group-hover:scale-110 transition-transform" />
-        </button>
+        {error && (
+          <div className="bg-rose-50 border border-rose-100 text-rose-700 p-6 rounded-2xl mb-8 text-xs text-left leading-relaxed max-w-xl mx-auto">
+            <p className="font-bold mb-1">Sign-up Notice:</p>
+            <code className="block bg-white/60 p-2 rounded border border-rose-100 font-mono text-[10px] break-all mb-3 text-red-600">
+              {error}
+            </code>
+            <p>Google login popups or database writes may be blocked by your browser\'s sandbox restrictions. Feel free to use our <strong>Sandbox Bypass</strong> button below to test the full sign-up and experience the platform instantly.</p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <button
+            onClick={handleSignup}
+            disabled={loading}
+            className="bg-wellness-olive text-white px-12 py-6 rounded-full font-bold text-xl hover:bg-wellness-ink transition-all shadow-xl shadow-wellness-ink/20 flex items-center group shrink-0"
+          >
+            {loading ? 'Entering Sanctuary...' : 'Join us to enter'}
+            <Smile className="ml-3 w-6 h-6 group-hover:scale-110 transition-transform" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              loginAsSandboxUser('student', 'student@yogaclientflow.com', 'Aria Wind');
+              navigate('/dashboard');
+            }}
+            className="border border-emerald-200 bg-emerald-50 text-emerald-800 px-12 py-6 rounded-full font-bold text-xl hover:bg-emerald-100 transition-all flex items-center leading-none"
+          >
+            Simulate Student Sign-Up
+          </button>
+        </div>
         
         <p className="mt-10 text-wellness-ink/40 text-sm italic">"A community of seekers and guides dedicated to the art of living well."</p>
       </motion.div>

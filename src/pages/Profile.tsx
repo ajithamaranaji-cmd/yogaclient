@@ -539,9 +539,9 @@ export default function Profile() {
                      </ul>
                      <div className="pt-4 flex flex-col gap-4">
                        <RazorpayButton
-                         amount={2499}
+                         amount={29}
                          planId="starter"
-                         label="Pay with Razorpay (₹)"
+                         label="Pay with Razorpay ($29)"
                          onSuccess={() => setShowUpgradeModal(false)}
                          className="bg-wellness-sage text-white w-full"
                        />
@@ -600,9 +600,9 @@ export default function Profile() {
 
                 <div className="pt-4 flex flex-col gap-4">
                   <RazorpayButton
-                    amount={849}
+                    amount={10}
                     planId="credits"
-                    label="Pay with Razorpay (₹)"
+                    label="Pay with Razorpay ($10)"
                     onSuccess={() => setShowCreditsModal(false)}
                     className="bg-wellness-stone text-white w-full"
                   />

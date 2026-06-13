@@ -133,11 +133,15 @@ async function startServer() {
   });
 
   // Razorpay Routes
+  app.get('/api/razorpay/key', (req, res) => {
+    res.json({ keyId: process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '' });
+  });
+
   app.post('/api/razorpay/create-order', async (req, res) => {
-    const { amount, currency = 'INR', receipt = 'receipt_1' } = req.body;
+    const { amount, currency = 'USD', receipt = 'receipt_1' } = req.body;
 
     if (!amount || amount < 100) {
-      return res.status(400).json({ error: 'Minimum amount is 100 paise' });
+      return res.status(400).json({ error: 'Minimum amount is 100 cents ($1.00 USD)' });
     }
 
     try {

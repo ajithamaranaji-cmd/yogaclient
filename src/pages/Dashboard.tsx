@@ -298,9 +298,9 @@ export default function Dashboard() {
             </div>
 
             <RazorpayButton 
-              amount={2499} 
+              amount={29} 
               planId="master_teacher_pass"
-              label="Purchase Teacher Sanctuary Pass (₹2,499)"
+              label="Purchase Teacher Sanctuary Pass ($29)"
               onSuccess={handlePaymentSuccess}
               className="w-full max-w-md mx-auto py-5 bg-wellness-stone hover:bg-wellness-sage rounded-2xl font-bold font-sans uppercase tracking-[0.2em] text-xs transition-all shadow-xl shadow-stone-200"
             />
