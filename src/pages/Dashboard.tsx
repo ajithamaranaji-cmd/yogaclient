@@ -25,7 +25,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { firestoreService } from '../services/firestore';
-import { getDoc, doc, updateDoc, where, orderBy, limit } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, where, orderBy, limit, arrayUnion } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import Loading from '../components/ui/Loading';
 import { Link, useNavigate } from 'react-router-dom';
@@ -160,11 +160,21 @@ export default function Dashboard() {
   const handlePaymentSuccess = async (response: any) => {
     if (!user) return;
     try {
+      const paymentLog = {
+        amount: 'USD Standard Price',
+        date: new Date().toISOString(),
+        status: 'success',
+        planId: 'master_teacher_pass',
+        email: user.email,
+        transactionId: response?.razorpay_payment_id || 'pay_' + Math.random().toString(36).substring(2, 11)
+      };
+
       // Update both documents to fully synchronize payment
       await updateDoc(doc(db, 'users', user.uid), {
         isPremium: true,
         subscriptionExpiresAt: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
-        credits: 30
+        credits: 30,
+        paymentHistory: arrayUnion(paymentLog)
       });
       await updateDoc(doc(db, 'professionals', user.uid), {
         isPremium: true

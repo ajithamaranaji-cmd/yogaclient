@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { firestoreService } from '../services/firestore';
@@ -27,12 +27,24 @@ import { cn } from '../lib/utils';
 
 export default function TeacherSignup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
-  const { loginAsSandboxUser } = useAuth();
   const { scrollYProgress } = useScroll();
 
-  const handleSignup = async () => {
+  const redirectTarget = location.state?.redirect || null;
+  const planId = location.state?.planId || null;
+
+  const scrollToForm = () => {
+    const card = document.getElementById('join-form-card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleGoogleSignup = async () => {
     setLoading(true);
     setError('');
     try {
@@ -74,7 +86,17 @@ export default function TeacherSignup() {
         website: 'expert-wellness.global'
       });
 
-      navigate('/dashboard');
+      if (redirectTarget) {
+        navigate(redirectTarget);
+        return;
+      }
+      if (planId) {
+        navigate(`/checkout?plan=${planId}`);
+        return;
+      }
+
+      // Take user directly to pricing/payment
+      navigate('/pricing');
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Google Auth Popup or Firestore write was refused/blocked in this browser context.');
@@ -90,8 +112,8 @@ export default function TeacherSignup() {
       <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-wellness-lavender/20 blur-[120px] rounded-full opacity-40 translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-6 py-32 md:py-48 flex flex-col lg:flex-row items-center gap-16 md:gap-32 relative z-10">
-        <div className="flex-1">
+      <div className="max-w-7xl mx-auto px-6 py-32 md:py-48 flex flex-col lg:flex-row items-start gap-16 md:gap-32 relative z-10">
+        <div className="flex-1 w-full lg:sticky lg:top-36">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -105,41 +127,17 @@ export default function TeacherSignup() {
               Transform <br /> <span className="italic font-light text-wellness-muted">Your Influence</span>
             </h1>
             <p className="text-xl md:text-2xl text-wellness-muted mb-16 leading-relaxed max-w-xl font-serif italic text-pretty">
-              Join a curated collective of elite wellness masters. We provide the infrastructure; you provide the transformation.
+              Join a curated collective of elite wellness masters. We provide the infrastructure; you provide the transformation. All membership details are charged in USD.
             </p>
 
             {error && (
               <div className="bg-rose-50 border border-rose-100 text-rose-700 p-6 rounded-2xl mb-8 text-xs text-left leading-relaxed max-w-xl">
-                <p className="font-bold mb-1">Sign-up Notice:</p>
-                <code className="block bg-white/60 p-2 rounded border border-rose-100 font-mono text-[10px] break-all mb-3 text-red-600">
+                <p className="font-bold mb-1">Registration Error:</p>
+                <code className="block bg-white/60 p-2 rounded border border-rose-100 font-mono text-[10px] break-all text-red-600 font-bold">
                   {error}
                 </code>
-                <p>Google popups or database writes may be blocked by your browser\'s iframe/sandbox limitations. Feel free to use our <strong>Sandbox Bypass</strong> button below to test the full sign-up, dashboard, and payment checkout flows securely.</p>
               </div>
             )}
-
-            <div className="flex flex-col sm:flex-row gap-6 mb-16">
-              <button
-                onClick={handleSignup}
-                disabled={loading}
-                className="group bg-wellness-stone text-white px-10 py-7 rounded-[32px] font-bold text-[11px] uppercase tracking-[0.4em] hover:bg-wellness-sage transition-all shadow-2xl flex items-center justify-center relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                {loading ? 'Processing Mastery...' : 'Apply as Expert'}
-                <Sparkles className="ml-4 w-5 h-5 group-hover:rotate-12 transition-transform" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  loginAsSandboxUser('professional', 'expert@yogaclientflow.com', 'Maya Shanti');
-                  navigate('/dashboard');
-                }}
-                className="px-10 py-7 rounded-[32px] border border-emerald-200 bg-emerald-50 text-emerald-800 font-bold text-[11px] uppercase tracking-[0.4em] hover:bg-emerald-100 transition-all text-center flex items-center justify-center"
-              >
-                Simulate Expert Sign-Up
-              </button>
-            </div>
 
             <div className="flex items-center gap-8 opacity-40">
               <div className="flex -space-x-3">
@@ -152,7 +150,41 @@ export default function TeacherSignup() {
           </motion.div>
         </div>
 
-        <div className="flex-1 relative w-full">
+        {/* Signup Form Container */}
+        <div className="flex-1 w-full max-w-md">
+          <motion.div
+            id="join-form-card"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white/80 backdrop-blur-md p-10 rounded-[48px] border border-stone-200/60 shadow-2xl"
+          >
+            <div className="mb-8">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#5d7a65] block mb-2">Apply as Expert</span>
+              <h2 className="text-3xl font-serif text-wellness-stone mb-4">Master Registration</h2>
+              <p className="text-xs text-wellness-muted leading-relaxed">Join using your Google account to secure your profile and choose your membership tier instantly.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={loading}
+              className="w-full flex items-center justify-center space-x-3 bg-white border border-stone-200 py-4 rounded-2xl font-bold hover:bg-[#FAF9F6] transition-colors shadow-sm text-sm text-stone-700 h-14"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              <span>{loading ? 'Connecting...' : 'Continue with Google'}</span>
+            </button>
+
+            <p className="text-center mt-8 text-xs text-wellness-muted">
+              Already have an account?{' '}
+              <Link to="/login" className="text-wellness-olive font-bold hover:underline">
+                Sign In Here
+              </Link>
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="flex-1 relative w-full hidden">
           <motion.div
              initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
              animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -358,7 +390,7 @@ export default function TeacherSignup() {
                     <div className="text-7xl font-serif mb-4">$99<span className="text-xs text-stone-400 font-sans tracking-widest ml-2">/mo</span></div>
                     <p className="text-xs text-stone-400 mb-12 uppercase tracking-[0.2em] leading-relaxed">Unlimited Discovery • Featured Status • Full Analytics</p>
                     <button 
-                      onClick={handleSignup}
+                      onClick={scrollToForm}
                       className="w-full py-7 bg-white text-wellness-stone rounded-3xl text-[10px] font-bold uppercase tracking-[0.4em] hover:scale-105 transition-all shadow-xl"
                     >
                       Enter the Sanctuary
@@ -388,11 +420,10 @@ export default function TeacherSignup() {
               
               <div className="flex flex-col items-center gap-8">
                 <button
-                  onClick={handleSignup}
-                  disabled={loading}
+                  onClick={scrollToForm}
                   className="bg-wellness-stone text-white px-16 py-8 rounded-[40px] font-bold text-[12px] uppercase tracking-[0.5em] hover:bg-wellness-sage transition-all shadow-3xl hover:scale-105 active:scale-95"
                 >
-                  {loading ? 'Processing...' : 'Apply as Expert Now'}
+                  Apply as Expert Now
                 </button>
                 <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-wellness-sage/60">
                    <ShieldCheck className="w-4 h-4" />

@@ -542,7 +542,10 @@ export default function Profile() {
                          amount={29}
                          planId="starter"
                          label="Pay with Razorpay ($29)"
-                         onSuccess={() => setShowUpgradeModal(false)}
+                         onSuccess={async () => {
+                           await purchasePremium('starter');
+                           setShowUpgradeModal(false);
+                         }}
                          className="bg-wellness-sage text-white w-full"
                        />
                      </div>
@@ -603,7 +606,10 @@ export default function Profile() {
                     amount={10}
                     planId="credits"
                     label="Pay with Razorpay ($10)"
-                    onSuccess={() => setShowCreditsModal(false)}
+                    onSuccess={async () => {
+                      await purchaseCredits();
+                      setShowCreditsModal(false);
+                    }}
                     className="bg-wellness-stone text-white w-full"
                   />
                 </div>

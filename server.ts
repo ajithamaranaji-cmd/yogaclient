@@ -141,15 +141,15 @@ async function startServer() {
     const { amount, currency = 'USD', receipt = 'receipt_1' } = req.body;
 
     if (!amount || amount < 100) {
-      return res.status(400).json({ error: 'Minimum amount is 100 cents ($1.00 USD)' });
+      return res.status(400).json({ error: 'Minimum amount is $1.00 USD (100 cents)' });
     }
 
     try {
       const razorpay = getRazorpay();
       const options = {
-        amount: Math.round(amount), // amount in the smallest currency unit
-        currency: currency,
-        receipt: receipt,
+        amount: Math.round(amount), // amount in the smallest currency unit (e.g. cents)
+        currency,
+        receipt,
       };
 
       const order = await razorpay.orders.create(options);
@@ -160,7 +160,7 @@ async function startServer() {
       });
     } catch (err: any) {
       console.error('Razorpay create order error:', err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: err.message || 'Unable to create payment order' });
     }
   });
 

@@ -20,7 +20,7 @@ interface SubscriptionContextType {
   unlockProfileContact: (profileId: string) => Promise<boolean>;
   saveProfile: (profileId: string) => Promise<void>;
   removeSavedProfile: (profileId: string) => Promise<void>;
-  purchasePremium: () => Promise<void>;
+  purchasePremium: (planId?: string) => Promise<void>;
   purchaseCredits: () => Promise<void>;
   verifyPremiumAccess: () => boolean;
   isSubscriptionActive: () => boolean;
@@ -52,32 +52,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         savedProfiles: [],
       });
       setIsLoading(false);
-      return;
-    }
-
-    if (user.isSandbox) {
-      const loadSandboxSub = () => {
-        try {
-          const stored = localStorage.getItem(`sandbox_sub_${user.uid}`);
-          if (stored) {
-            setSubscription(JSON.parse(stored));
-          } else {
-            const initial = {
-              isActive: false,
-              expiresAt: null,
-              credits: 0,
-              unlockedProfiles: [],
-              savedProfiles: [],
-            };
-            setSubscription(initial);
-            localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(initial));
-          }
-        } catch (err) {
-          console.error(err);
-        }
-        setIsLoading(false);
-      };
-      loadSandboxSub();
       return;
     }
 
@@ -143,23 +117,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return false;
     }
     
-    if (user.isSandbox) {
-      const updated = {
-        ...subscription,
-        credits: Math.max(0, subscription.credits - 1),
-        unlockedProfiles: subscription.unlockedProfiles.includes(profileId)
-          ? subscription.unlockedProfiles
-          : [...subscription.unlockedProfiles, profileId],
-      };
-      setSubscription(updated);
-      try {
-        localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return true;
-    }
-
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
@@ -176,22 +133,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const saveProfile = async (profileId: string) => {
     if (!user || !isPremium) return;
 
-    if (user.isSandbox) {
-      const updated = {
-        ...subscription,
-        savedProfiles: subscription.savedProfiles.includes(profileId)
-          ? subscription.savedProfiles
-          : [...subscription.savedProfiles, profileId],
-      };
-      setSubscription(updated);
-      try {
-        localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return;
-    }
-
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
@@ -205,20 +146,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const removeSavedProfile = async (profileId: string) => {
     if (!user) return;
 
-    if (user.isSandbox) {
-      const updated = {
-        ...subscription,
-        savedProfiles: subscription.savedProfiles.filter(id => id !== profileId),
-      };
-      setSubscription(updated);
-      try {
-        localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return;
-    }
-
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
@@ -229,35 +156,31 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  const purchasePremium = async () => {
+  const purchasePremium = async (planId?: string) => {
     if (!user) return;
     
     const verified = await paymentVerification('mock_sub_id');
     if (!verified) return;
 
     const expiry = addDays(new Date(), 28).toISOString();
+    const isTestOverride = user.email === 'ajithamaranaji@gmail.com' && (import.meta.env.VITE_PAYMENT_TESTING_OVERRIDE !== 'false');
 
-    if (user.isSandbox) {
-      const updated = {
-        ...subscription,
-        isActive: true,
-        expiresAt: expiry,
-        credits: 30,
-      };
-      setSubscription(updated);
-      try {
-        localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return;
-    }
+    const paymentLog = {
+      amount: isTestOverride ? '₹1 INR' : 'Regular USD Price',
+      date: new Date().toISOString(),
+      status: 'success',
+      planId: planId || 'Premium Access Pass',
+      isTestPayment: isTestOverride,
+      email: user.email,
+      transactionId: 'pay_' + Math.random().toString(36).substring(2, 11)
+    };
 
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         subscriptionExpiresAt: expiry,
         credits: 30, // Reset to 30 as per rules
+        paymentHistory: arrayUnion(paymentLog)
       });
     } catch (error) {
       console.error('Error purchasing premium:', error);
@@ -270,24 +193,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const verified = await paymentVerification('mock_credit_id');
     if (!verified) return;
 
-    if (user.isSandbox) {
-      const updated = {
-        ...subscription,
-        credits: subscription.credits + 10,
-      };
-      setSubscription(updated);
-      try {
-        localStorage.setItem(`sandbox_sub_${user.uid}`, JSON.stringify(updated));
-      } catch (err) {
-        console.error(err);
-      }
-      return;
-    }
+    const isTestOverride = user.email === 'ajithamaranaji@gmail.com' && (import.meta.env.VITE_PAYMENT_TESTING_OVERRIDE !== 'false');
+
+    const paymentLog = {
+      amount: isTestOverride ? '₹1 INR' : 'Regular USD Price',
+      date: new Date().toISOString(),
+      status: 'success',
+      planId: '10 Credits Added',
+      isTestPayment: isTestOverride,
+      email: user.email,
+      transactionId: 'pay_' + Math.random().toString(36).substring(2, 11)
+    };
 
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         credits: increment(10),
+        paymentHistory: arrayUnion(paymentLog)
       });
     } catch (error) {
       console.error('Error purchasing credits:', error);

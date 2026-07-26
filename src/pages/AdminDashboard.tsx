@@ -5,9 +5,52 @@ import { Users, CreditCard, Shield, BarChart3, Database, AlertCircle, CheckCircl
 import Loading from '../components/ui/Loading';
 import { cn } from '../lib/utils';
 import DashboardLayout from '../components/layout/DashboardLayout';
+import { db } from '../lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function AdminDashboard() {
   const { isAdmin, loading } = useAuth();
+  const [logs, setLogs] = React.useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchPlatformLogs() {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const allLogs: any[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          const email = userData.email || 'unknown@user.com';
+          
+          // 1. Extract payment history
+          if (Array.isArray(userData.paymentHistory)) {
+            userData.paymentHistory.forEach((p: any) => {
+              allLogs.push({
+                date: p.date || new Date().toISOString(),
+                email: email,
+                planId: p.planId || 'Premium Pass',
+                amount: p.amount || 'Standard USD Price',
+                status: p.status || 'success'
+              });
+            });
+          }
+        });
+        
+        // Sort logs desc by date
+        allLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setLogs(allLogs);
+      } catch (err) {
+        console.error("Error loading activity logs:", err);
+      } finally {
+        setLoadingLogs(false);
+      }
+    }
+    
+    if (isAdmin) {
+      fetchPlatformLogs();
+    }
+  }, [isAdmin]);
 
   if (loading) return <Loading />;
   if (!isAdmin) return <div className="p-20 text-center font-serif text-2xl">Unauthorized. Admin access only.</div>;
@@ -79,6 +122,66 @@ export default function AdminDashboard() {
                 </div>
             </div>
          </div>
+      </div>
+
+      {/* Platform Audit & Payment Activity Logs Section */}
+      <div className="mt-12 bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm shadow-gray-50/50">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
+          <h3 className="text-2xl font-serif text-wellness-stone flex items-center">
+             <Shield className="w-6 h-6 mr-3 text-wellness-sage" />
+             Platform Audit & Payment Activity Logs
+          </h3>
+          <span className="text-[10px] bg-wellness-sage/10 text-wellness-sage font-bold uppercase tracking-widest px-4 py-1.5 rounded-full self-start sm:self-auto">Secure Audit Logs</span>
+        </div>
+        
+        {loadingLogs ? (
+          <div className="py-12 text-center text-xs text-gray-400 italic">Retrieving secure logs from Firestore...</div>
+        ) : logs.length === 0 ? (
+          <div className="py-12 text-center text-xs text-gray-400 italic">No payment logs found on platform yet.</div>
+        ) : (
+          <div className="overflow-x-auto w-full">
+             <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                   <tr className="border-b border-gray-100 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      <th className="pb-4 w-1/4">Timestamp</th>
+                      <th className="pb-4 w-2/5">User Identity</th>
+                      <th className="pb-4 w-1/5">Plan Item</th>
+                      <th className="pb-4 font-mono w-1/10">Amount</th>
+                      <th className="pb-4 text-right w-1/10">Status</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 text-stone-600">
+                   {logs.map((log, index) => (
+                      <tr key={index} className="text-sm">
+                         <td className="py-4 font-mono text-xs text-gray-400">{new Date(log.date).toLocaleString()}</td>
+                         <td className="py-4 font-medium text-wellness-stone">
+                           <div className="flex items-center gap-2 flex-wrap">
+                             <span>{log.email}</span>
+                             {log.isTestPayment && (
+                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                 Test Payment Account
+                               </span>
+                             )}
+                           </div>
+                         </td>
+                         <td className="py-4 text-stone-500 capitalize">{log.planId.replace(/_/g, ' ')}</td>
+                         <td className="py-4 font-mono text-wellness-stone font-bold">{log.amount}</td>
+                         <td className="py-4 text-right">
+                           <span className={cn(
+                             "inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border",
+                             log.status === 'active' 
+                               ? "bg-blue-50 text-blue-700 border-blue-100"
+                               : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                           )}>
+                             {log.status === 'active' ? 'Eligible' : 'Success'}
+                           </span>
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

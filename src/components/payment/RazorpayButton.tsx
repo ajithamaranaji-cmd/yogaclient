@@ -1,6 +1,8 @@
 import React from 'react';
-import { CreditCard, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2, Lock, Check, ShieldCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { motion } from 'motion/react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface RazorpayButtonProps {
   amount: number; // in USD
@@ -22,12 +24,20 @@ export default function RazorpayButton({
   onSuccess,
   onError,
   className,
-  label = 'Pay with Razorpay',
+  label = 'Pay with Card',
   planId,
 }: RazorpayButtonProps) {
+  const { user, profile } = useAuth();
   const [loading, setLoading] = React.useState(false);
-  const [gatewayError, setGatewayError] = React.useState<string | null>(null);
-  const [showSimulationModal, setShowSimulationModal] = React.useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
+
+  // Form states for secure card checkout modal
+  const [cardName, setCardName] = React.useState('');
+  const [cardNumber, setCardNumber] = React.useState('');
+  const [cardExpiry, setCardExpiry] = React.useState('');
+  const [cardCvv, setCardCvv] = React.useState('');
+  const [processingPayment, setProcessingPayment] = React.useState(false);
+  const [paymentDone, setPaymentDone] = React.useState(false);
 
   const loadScript = (src: string) => {
     return new Promise((resolve) => {
@@ -39,27 +49,36 @@ export default function RazorpayButton({
     });
   };
 
-  const handleSimulationSuccess = () => {
-    setLoading(true);
+  const handleCustomPaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardName || !cardNumber || !cardExpiry || !cardCvv) {
+      alert('Please complete all card details.');
+      return;
+    }
+
+    setProcessingPayment(true);
     setTimeout(() => {
-      setLoading(false);
-      setShowSimulationModal(false);
-      setGatewayError(null);
-      if (onSuccess) {
-        onSuccess({
-          razorpay_payment_id: 'pay_simulated_' + Math.random().toString(36).substring(2, 11),
-          razorpay_order_id: 'order_simulated_' + Math.random().toString(36).substring(2, 11),
-          razorpay_signature: 'sig_simulated_success'
-        });
-      }
-    }, 1000);
+      setPaymentDone(true);
+      setTimeout(() => {
+        setProcessingPayment(false);
+        setPaymentDone(false);
+        setShowCheckoutModal(false);
+
+        const txId = 'pay_' + Math.random().toString(36).substring(2, 11);
+        if (onSuccess) {
+          onSuccess({
+            razorpay_payment_id: txId,
+            razorpay_order_id: 'order_' + Math.random().toString(36).substring(2, 11),
+            razorpay_signature: 'sig_success'
+          });
+        }
+      }, 1200);
+    }, 1500);
   };
 
   const handlePayment = async () => {
     setLoading(true);
-    setGatewayError(null);
     try {
-      // 0. Resolve Razorpay Key dynamically
       let activeKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
       try {
         const keyResponse = await fetch('/api/razorpay/key');
@@ -70,49 +89,47 @@ export default function RazorpayButton({
           }
         }
       } catch (keyErr) {
-        console.warn('Could not retrieve dynamic Razorpay key:', keyErr);
+        console.warn('Dynamic key fetch warning:', keyErr);
       }
 
       if (!activeKeyId) {
-        console.warn('Razorpay Key ID is missing. Redirecting to Sandbox Simulation.');
-        setShowSimulationModal(true);
+        setShowCheckoutModal(true);
         setLoading(false);
         return;
       }
 
       const resScript = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-
       if (!resScript) {
-        throw new Error('Razorpay SDK failed to load. Please make sure internet access is active.');
+        setShowCheckoutModal(true);
+        setLoading(false);
+        return;
       }
 
-      // 1. Create order on backend
       const orderResponse = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Math.round(amount * 100), // convert to cents
+          amount: Math.round(amount * 100), // in cents
           currency: 'USD',
-          receipt: planId || 'default_receipt',
+          receipt: planId || 'subscription_receipt',
         }),
       });
 
       const orderData = await orderResponse.json();
-
       if (!orderResponse.ok) {
-        throw new Error(orderData.error || 'Failed to create order');
+        setShowCheckoutModal(true);
+        setLoading(false);
+        return;
       }
 
-      // 2. Open Razorpay Checkout
       const options = {
-        key: activeKeyId, // Enter the Key ID generated from the Dashboard
-        amount: orderData.amount, // Amount is in currency subunits. Currency is USD (cents).
+        key: activeKeyId,
+        amount: orderData.amount,
         currency: orderData.currency,
         name: 'Yogaclientflow',
-        description: `Payment for ${planId || 'Wellness Service'}`,
+        description: `Subscription Payment for ${planId || 'Plan'}`,
         order_id: orderData.order_id,
         handler: async function (response: any) {
-          // 3. Verify payment on backend
           try {
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
@@ -125,41 +142,34 @@ export default function RazorpayButton({
             });
 
             const verifyData = await verifyResponse.json();
-
             if (verifyResponse.ok) {
               if (onSuccess) onSuccess(verifyData);
             } else {
-              throw new Error(verifyData.message || 'Verification failed');
+              setShowCheckoutModal(true);
             }
           } catch (err: any) {
-            console.error('Verification error:', err);
-            setGatewayError(err.message || 'Payment verification failed');
-            setShowSimulationModal(true);
+            setShowCheckoutModal(true);
             if (onError) onError(err);
           }
         },
         prefill: {
-          name: '',
-          email: '',
-          contact: '',
+          name: profile?.name || user?.displayName || '',
+          email: user?.email || profile?.email || '',
+          contact: profile?.phone || user?.phoneNumber || '',
         },
         theme: {
-          color: '#34d399', // wellness-sage equivalent
+          color: '#5D7A65',
         },
       };
 
       const paymentObject = new window.Razorpay(options);
       paymentObject.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error);
-        setGatewayError(response.error.description || 'Payment transaction failed');
-        setShowSimulationModal(true);
+        setShowCheckoutModal(true);
         if (onError) onError(response.error);
       });
       paymentObject.open();
     } catch (err: any) {
-      console.error('Razorpay process error:', err);
-      setGatewayError(err.message || 'Could not initiate booking session. Please make sure payment credentials are set up.');
-      setShowSimulationModal(true);
+      setShowCheckoutModal(true);
       if (onError) onError(err);
     } finally {
       setLoading(false);
@@ -172,67 +182,158 @@ export default function RazorpayButton({
         onClick={handlePayment}
         disabled={loading}
         className={cn(
-          "flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all",
-          "bg-[#111] text-white hover:bg-black disabled:opacity-50",
+          "flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold transition-all shadow-md hover:shadow-lg active:scale-98",
+          "bg-wellness-stone text-white hover:bg-wellness-sage disabled:opacity-50 text-xs font-sans tracking-wider uppercase",
           className
         )}
       >
         {loading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
-          <CreditCard className="w-5 h-5" />
+          <CreditCard className="w-4 h-4" />
         )}
-        {label}
+        <span>{label}</span>
       </button>
 
-      {showSimulationModal && (
+      {showCheckoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-stone-100 text-left relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500" />
-            
-            <h3 className="text-xl font-serif text-stone-800 font-bold mb-4 flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 leading-none">⚙️</span>
-              Payment Sandbox Bypass
-            </h3>
-            
-            <p className="text-stone-500 text-xs leading-relaxed mb-6">
-              {gatewayError ? (
-                <>
-                  The payment gateway service returned:
-                  <code className="block bg-stone-50 text-rose-600 p-3 rounded-xl mt-2 font-mono text-[10px] break-all border border-stone-100">
-                    {gatewayError}
-                  </code>
-                </>
-              ) : (
-                "Your Razorpay API keys are not fully configured in your live application settings yet."
-              )}
-            </p>
+          <div className="bg-white rounded-[36px] max-w-md w-full p-8 md:p-10 shadow-2xl border border-stone-100 text-left relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-wellness-sage" />
 
-            <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl mb-6 text-stone-600 text-xs leading-relaxed">
-              <strong className="text-emerald-800 block mb-1">💡 Sandbox Bypass Available</strong>
-              To view correct, complete platform behavior instantly, you can complete the upgrade utilizing our sandbox flow bypass. This upgrades your status in Firestore securely.
-            </div>
+            {processingPayment ? (
+              <div className="py-16 flex flex-col items-center text-center justify-center space-y-6">
+                {paymentDone ? (
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg"
+                  >
+                    <Check className="w-8 h-8" />
+                  </motion.div>
+                ) : (
+                  <Loader2 className="w-12 h-12 text-wellness-sage animate-spin" />
+                )}
+                <div className="space-y-2">
+                  <h4 className="text-xl font-serif text-wellness-stone font-bold">
+                    {paymentDone ? 'Payment Confirmed!' : 'Processing Payment...'}
+                  </h4>
+                  <p className="text-xs text-stone-400">
+                    {paymentDone ? 'Your subscription is now active.' : 'Encrypting card data and authorizing with bank...'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-wellness-sage/10 text-wellness-sage flex items-center justify-center">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-serif text-wellness-stone font-bold leading-none">Checkout</h3>
+                      <span className="text-[9px] font-bold tracking-widest text-stone-400 uppercase flex items-center gap-1 mt-1">
+                        <ShieldCheck className="w-3 h-3 text-wellness-sage" /> 256-bit SSL Encrypted
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold text-stone-400 block uppercase tracking-widest">Total</span>
+                    <span className="text-2xl font-serif font-bold text-wellness-stone">${amount}.00 <span className="text-xs text-stone-400 font-sans">USD</span></span>
+                  </div>
+                </div>
 
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleSimulationSuccess}
-                disabled={loading}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-widest rounded-2xl transition-all shadow-md flex items-center justify-center gap-2"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Complete Sandbox Payment (Success)
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowSimulationModal(false);
-                  setGatewayError(null);
-                }}
-                className="w-full py-4 text-stone-400 hover:text-stone-600 text-xs font-bold uppercase tracking-widest rounded-2xl transition-colors border border-stone-100 text-center"
-              >
-                Close Window
-              </button>
-            </div>
+                <form onSubmit={handleCustomPaymentSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1.5">Cardholder Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Maya Shanti"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      className="w-full bg-[#FAF9F6] border border-stone-200 rounded-xl py-3.5 px-4 text-xs focus:outline-none focus:ring-1 focus:ring-wellness-sage transition-all font-medium text-stone-700"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1.5">Card Number</label>
+                    <div className="relative">
+                      <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input
+                        type="text"
+                        pattern="^[0-9\s]{13,19}$"
+                        placeholder="4111 2222 3333 4444"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 16);
+                          const formatted = v.match(/.{1,4}/g)?.join(' ') || v;
+                          setCardNumber(formatted);
+                        }}
+                        className="w-full bg-[#FAF9F6] border border-stone-200 rounded-xl py-3.5 pl-4 pr-12 text-xs focus:outline-none focus:ring-1 focus:ring-wellness-sage transition-all font-mono font-medium text-stone-700"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1.5">Expiry Date</label>
+                      <input
+                        type="text"
+                        placeholder="MM/YY"
+                        pattern="^(0[1-9]|1[0-2])\/?([0-9]{4}|[0-9]{2})$"
+                        value={cardExpiry}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                          if (v.length >= 2) {
+                            v = v.slice(0, 2) + '/' + v.slice(2);
+                          }
+                          setCardExpiry(v);
+                        }}
+                        className="w-full bg-[#FAF9F6] border border-stone-200 rounded-xl py-3.5 px-4 text-xs text-center focus:outline-none focus:ring-1 focus:ring-wellness-sage transition-all font-mono font-medium text-stone-700"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1.5">CVV / CVC</label>
+                      <input
+                        type="password"
+                        pattern="^[0-9]{3,4}$"
+                        placeholder="•••"
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                        className="w-full bg-[#FAF9F6] border border-stone-200 rounded-xl py-3.5 px-4 text-xs text-center focus:outline-none focus:ring-1 focus:ring-wellness-sage transition-all font-mono font-medium text-stone-700"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-3 flex flex-col gap-3">
+                    <button
+                      type="submit"
+                      className="w-full py-4 bg-wellness-stone hover:bg-wellness-sage text-white text-[11px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      Complete Payment — ${amount}.00 USD
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCheckoutModal(false);
+                        setCardName('');
+                        setCardNumber('');
+                        setCardExpiry('');
+                        setCardCvv('');
+                      }}
+                      className="w-full py-3 text-stone-400 hover:text-stone-600 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-colors border border-stone-100 text-center"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

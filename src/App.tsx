@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import SavedProfiles from './pages/SavedProfiles';
 import BangorYogaInstructorWebsite from './pages/BangorYogaInstructorWebsite';
 import HalifaxYogaInstructorWebsite from './pages/HalifaxYogaInstructorWebsite';
+import Checkout from './pages/Checkout';
 
 import ScrollToTop from './components/layout/ScrollToTop';
 
@@ -73,6 +74,7 @@ export default function App() {
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<Blog />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/checkout" element={<Checkout />} />
                 <Route path="/signup/teacher" element={<TeacherSignup />} />
                 <Route path="/signup/student" element={<StudentSignup />} />
                 <Route path="/login" element={<Login />} />
